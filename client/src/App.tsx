@@ -14,8 +14,20 @@ import StudentDashboard from "@/pages/StudentDashboard";
 import AdminTeachers from "@/pages/AdminTeachers";
 import AdminStudents from "@/pages/AdminStudents";
 import AdminQuizzes from "@/pages/AdminQuizzes";
+import AdminClasses from "@/pages/AdminClasses";
+import AdminTimetable from "@/pages/AdminTimetable";
+import AdminNotices from "@/pages/AdminNotices";
+import AdminReports from "@/pages/AdminReports";
+import TeacherTimetable from "@/pages/TeacherTimetable";
 import TeacherAttendance from "@/pages/TeacherAttendance";
+import TeacherQuizzes from "@/pages/TeacherQuizzes";
+import TeacherGrades from "@/pages/TeacherGrades";
+import TeacherNotices from "@/pages/TeacherNotices";
+import StudentTimetable from "@/pages/StudentTimetable";
+import StudentAttendance from "@/pages/StudentAttendance";
 import StudentQuizzes from "@/pages/StudentQuizzes";
+import StudentGrades from "@/pages/StudentGrades";
+import StudentNotices from "@/pages/StudentNotices";
 
 function Router() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -52,13 +64,25 @@ function Router() {
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/teachers" component={AdminTeachers} />
               <Route path="/admin/students" component={AdminStudents} />
+              <Route path="/admin/classes" component={AdminClasses} />
               <Route path="/admin/quizzes" component={AdminQuizzes} />
+              <Route path="/admin/timetable" component={AdminTimetable} />
+              <Route path="/admin/reports" component={AdminReports} />
+              <Route path="/admin/notices" component={AdminNotices} />
               
               <Route path="/teacher" component={TeacherDashboard} />
+              <Route path="/teacher/timetable" component={TeacherTimetable} />
               <Route path="/teacher/attendance" component={TeacherAttendance} />
+              <Route path="/teacher/quizzes" component={TeacherQuizzes} />
+              <Route path="/teacher/grades" component={TeacherGrades} />
+              <Route path="/teacher/notices" component={TeacherNotices} />
               
               <Route path="/student" component={StudentDashboard} />
+              <Route path="/student/timetable" component={StudentTimetable} />
+              <Route path="/student/attendance" component={StudentAttendance} />
               <Route path="/student/quizzes" component={StudentQuizzes} />
+              <Route path="/student/grades" component={StudentGrades} />
+              <Route path="/student/notices" component={StudentNotices} />
               
               <Route component={NotFound} />
             </Switch>
