@@ -1,0 +1,136 @@
+You are an expert full-stack developer. Generate a fully working, production-grade FULL STACK SCHOOL MANAGEMENT SYSTEM web application with clean and scalable architecture. Include front-end, back-end, database schema, authentication, and complete UI screens.
+
+## ✅ Technology Preferences:
+- MERN Stack (MongoDB, Express.js, React.js, Node.js)
+- JWT authentication
+- Role-based access control (Admin, Teacher, Student)
+- Responsive UI with modern clean dashboard UI
+- Secure backend APIs
+- Proper folder structure
+
+## ✅ System Roles:
+1. ADMIN PANEL
+2. TEACHER PANEL
+3. STUDENT PANEL
+
+## ✅ ADMIN Features:
+- Login / Logout
+- Dashboard
+- Create / manage teachers
+- Create / manage students
+- Create / manage classes & subjects
+- Assign subjects to teachers
+- Upload / edit class timetable
+- Post school notices
+- Create quizzes (questions + answers)
+- View student attendance and overall reports
+- View quiz performance analytics
+
+## ✅ TEACHER Features:
+- Login / Logout
+- Dashboard
+- View assigned classes & subjects
+- View time table assigned by admin
+- Take attendance for class & subject wise
+- Create quizzes and assign to class
+- Grade quizzes automatically or manually
+- See student performance analytics
+- Post class notices/homework
+
+## ✅ STUDENT Features:
+- Login / Logout
+- Dashboard
+- View timetable
+- View attendance record
+- Attempt quizzes
+- Real-time quiz results with correct answers
+- View marks history
+- View notices
+
+## ✅ DATABASE Entities:
+- Users (role-based)
+- Classes
+- Subjects
+- Student Records
+- Teacher Records
+- Attendance
+- Quizzes
+    - Questions
+    - Answers
+    - Results
+- Notices
+- Timetables
+
+## ✅ SPECIAL REQUIREMENTS:
+- Use JWT tokens + refresh token
+- Password hashing (bcrypt)
+- Backend validation (express-validator)
+- Reusable React components
+- Protected routes based on user roles
+- Mobile responsive UI
+- Dashboard analytics cards & charts
+- Use Redux Toolkit for state management
+
+## ✅ API Endpoints Examples:
+- /api/auth/register
+- /api/auth/login
+- /api/admin/create-teacher
+- /api/admin/create-student
+- /api/attendance/mark
+- /api/timetable/get
+- /api/quiz/create
+- /api/quiz/result
+...etc
+
+## ✅ FRONTEND Pages:
+### Admin UI
+- Teacher management
+- Student management
+- Subject management
+- View reports (attendance & quiz)
+- Create quizzes
+- Dashboard analytics
+
+### Teacher UI
+- My subjects
+- Attendance form
+- Quiz creation page
+- Student performance table
+- Time table view
+- Notices page
+
+### Student UI
+- Timetable view page
+- Attendance history
+- Quiz attempt page
+- Quiz results page
+- School notices page
+
+## ✅ Final Deliverables:
+- Complete runnable source code
+- Installation and run instructions
+- Dummy seed data
+- Clear documentation
+- All API routes listed
+- All UI pages included
+- Form validations
+- Error handling
+- Toast/Snackbar notifications
+- Pagination + search on tables
+
+## ✅ Bonus Features:
+- Student performance graphs
+- Export attendance report (PDF)
+- Quiz leaderboard
+
+## ✅ Output Format:
+1. Project overview
+2. Folder structure
+3. Backend code
+4. Frontend code
+5. Database schema
+6. All API endpoints with example requests
+7. Steps to run project
+8. Dummy data seeding
+9. Future improvements suggestions
+use  languagis like react, node js, js, mongodb
