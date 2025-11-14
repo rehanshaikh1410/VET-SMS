@@ -3,11 +3,10 @@ services:
     name: school-system-backend
     runtime: node
     plan: free
-    # Install devDependencies so Vite (devDependency) is available during the build
-    buildCommand: npm install --include=dev
-    # Use npm script to start the TypeScript server
-    # This ensures the full npm run environment is used
-    startCommand: npm run start:prod
+    # Run project build (installs dev deps, compiles server, builds client)
+    buildCommand: npm run build
+    # Start the compiled Node server
+    startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production

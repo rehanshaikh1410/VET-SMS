@@ -4,13 +4,13 @@ import bcrypt from "bcrypt";
 import crypto from 'crypto';
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import User from "./models/userModel.ts";
-import Quiz from "./models/quizModel.ts";
-import ClassModel from "./models/classModel.ts";
-import Subject from "./models/subjectModel.ts";
-import Timetable from "./models/timetableModel.ts";
-import Notice from "./models/noticeModel.ts";
-import QuizResult from "./models/quizResult.ts";
+import User from "./models/userModel.js";
+import Quiz from "./models/quizModel.js";
+import ClassModel from "./models/classModel.js";
+import Subject from "./models/subjectModel.js";
+import Timetable from "./models/timetableModel.js";
+import Notice from "./models/noticeModel.js";
+import QuizResult from "./models/quizResult.js";
 import { authenticate, authorize } from "./middlewares/auth";
 
 // Extend Express Request type to include user

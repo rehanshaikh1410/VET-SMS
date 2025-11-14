@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./server",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "emitDeclarationOnly": false
+  },
+  "include": ["server/**/*"],
+  "exclude": ["node_modules", "client", "dist"]
+}

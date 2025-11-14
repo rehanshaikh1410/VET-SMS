@@ -1,12 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import connectDB from "./db.ts"; // your MongoDB connection
+import connectDB from "./db.js"; // your MongoDB connection
 import dotenv from "dotenv";
 import getPort from "get-port";
 import cors from "cors";
 import bcrypt from "bcrypt";
-import User from "./models/userModel.ts";
+import User from "./models/userModel.js";
 import { WebSocketServer } from "ws";
 
 dotenv.config(); // ✅ Load environment variables
@@ -167,10 +167,10 @@ app.use((req, res, next) => {
     }
 
     // --- Start server ---
-    const PORT = 5004;
+    const PORT = process.env.PORT ? Number(process.env.PORT) : 5004;
     server.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
-      console.log(`📡 WebSocket server ready on ws://localhost:${PORT}`);
+      console.log(`✅ Server running on http://0.0.0.0:${PORT} (env=${process.env.NODE_ENV || 'development'})`);
+      console.log(`📡 WebSocket server ready on ws://0.0.0.0:${PORT}`);
     });
 
   } catch (error) {
