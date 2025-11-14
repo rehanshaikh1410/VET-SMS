@@ -101,6 +101,21 @@ export const timetables = pgTable("timetables", {
   endTime: text("end_time").notNull(),
 });
 
+// <-- add this block in schema.ts (below other table defs)
+export const todos = pgTable("todos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  teacherId: varchar("teacher_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  completed: boolean("completed").notNull().default(false),
+  dueAt: timestamp("due_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const insertTodoSchema = createInsertSchema(todos).omit({ id: true, createdAt: true, updatedAt: true });
+export type Todo = typeof todos.$inferSelect;
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertClassSchema = createInsertSchema(classes).omit({ id: true });
 export const insertSubjectSchema = createInsertSchema(subjects).omit({ id: true });

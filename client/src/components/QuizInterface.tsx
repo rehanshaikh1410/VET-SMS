@@ -16,13 +16,18 @@ interface Question {
 interface QuizInterfaceProps {
   title: string;
   questions: Question[];
+  // onSubmit remains for backward compatibility (sync handlers)
   onSubmit?: (answers: number[]) => void;
+  // onSubmitAsync allows awaiting server response (returns submission result)
+  onSubmitAsync?: (answers: number[]) => Promise<{ score?: number; totalMarks?: number } | void>;
 }
 
-export default function QuizInterface({ title, questions, onSubmit }: QuizInterfaceProps) {
+export default function QuizInterface({ title, questions, onSubmit, onSubmitAsync }: QuizInterfaceProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>(Array(questions.length).fill(-1));
   const [submitted, setSubmitted] = useState(false);
+  const [serverScore, setServerScore] = useState<number | null>(null);
+  const [serverTotal, setServerTotal] = useState<number | null>(null);
 
   const handleAnswer = (answerIndex: number) => {
     const newAnswers = [...answers];
@@ -43,9 +48,28 @@ export default function QuizInterface({ title, questions, onSubmit }: QuizInterf
   };
 
   const handleSubmit = () => {
-    setSubmitted(true);
-    onSubmit?.(answers);
-    console.log('Quiz submitted with answers:', answers);
+    // If an async submit handler is provided, prefer it and wait for server result
+    const doSubmit = async () => {
+      try {
+        if (onSubmitAsync) {
+          const res = await onSubmitAsync(answers);
+          if (res && typeof res.score === 'number') {
+            setServerScore(res.score);
+            setServerTotal(res.totalMarks ?? questions.length);
+          }
+        } else {
+          // Fallback to synchronous handler
+          onSubmit?.(answers);
+        }
+      } catch (err) {
+        console.error('Error submitting quiz:', err);
+      } finally {
+        setSubmitted(true);
+      }
+    };
+
+    void doSubmit();
+    console.log('Quiz submitted with answers (local):', answers);
   };
 
   const progress = ((currentQuestion + 1) / questions.length) * 100;
@@ -53,12 +77,15 @@ export default function QuizInterface({ title, questions, onSubmit }: QuizInterf
     answer === questions[idx].correctAnswer ? acc + 1 : acc, 0) : 0;
 
   if (submitted) {
+    const displayScore = serverScore !== null ? serverScore : score;
+    const displayTotal = serverTotal !== null ? serverTotal : questions.length;
+
     return (
       <Card className="p-6 max-w-2xl mx-auto" data-testid="quiz-results">
         <div className="text-center space-y-4">
           <h2 className="text-3xl font-bold">Quiz Completed!</h2>
-          <div className="text-6xl font-bold text-primary" data-testid="quiz-score">{score}/{questions.length}</div>
-          <p className="text-muted-foreground">You scored {Math.round((score/questions.length) * 100)}%</p>
+          <div className="text-6xl font-bold text-primary" data-testid="quiz-score">{displayScore}/{displayTotal}</div>
+          <p className="text-muted-foreground">You scored {Math.round((displayScore/displayTotal) * 100)}%</p>
           
           <div className="space-y-4 mt-8 text-left">
             {questions.map((q, idx) => (

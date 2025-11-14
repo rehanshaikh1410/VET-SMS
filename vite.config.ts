@@ -17,7 +17,7 @@ export default defineConfig({
             m.devBanner(),
           ),
         ]
-      : []),
+      : [])
   ],
   resolve: {
     alias: {
@@ -35,6 +35,14 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    // Proxy API requests to the backend when running Vite dev server
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5004',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

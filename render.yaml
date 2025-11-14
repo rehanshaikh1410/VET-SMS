@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: school-system-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run build && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        scope: runtime
+        # You'll set this in Render dashboard
+      - key: PORT
+        value: 5004
+    autoDeploy: true
+    branch: main

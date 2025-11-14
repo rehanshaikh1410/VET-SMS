@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import NoticeCard from "@/components/NoticeCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,16 +13,149 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import api from "@/lib/api";
+
+interface Notice {
+  _id: string;
+  title: string;
+  content: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  audience: 'all' | 'teachers' | 'students';
+  postedBy: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+}
+
+type FormData = {
+  title: string;
+  content: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  audience: 'all' | 'teachers' | 'students';
+};
 
 export default function AdminNotices() {
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
 
-  const notices = [
-    { title: "Annual Sports Day", content: "The annual sports day will be held on December 15th. All students are requested to participate actively.", postedBy: "Principal", timestamp: "2 hours ago", priority: "high" as const },
-    { title: "Parent-Teacher Meeting", content: "PTM scheduled for next Saturday from 9 AM to 2 PM. Parents are requested to meet respective class teachers.", postedBy: "Admin", timestamp: "1 day ago", priority: "medium" as const },
-    { title: "Library Reopening", content: "School library will reopen from Monday with extended hours till 6 PM.", postedBy: "Librarian", timestamp: "2 days ago", priority: "low" as const },
-    { title: "Exam Schedule Released", content: "Final exam schedule has been published. Check your class notice boards for details.", postedBy: "Admin", timestamp: "3 days ago", priority: "urgent" as const },
-  ];
+  const [formData, setFormData] = useState<FormData>({
+    title: '',
+    content: '',
+    priority: 'medium',
+    audience: 'all'
+  });
+  
+  // Load current user and notices on mount
+  useEffect(() => {
+    loadCurrentUser();
+    loadNotices();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const { data } = await api.get<any>('/me');
+      setCurrentUserId(data._id);
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+    }
+  };
+
+  const loadNotices = async () => {
+    try {
+      const { data } = await api.get<Notice[]>('/notices');
+      setNotices(data);
+    } catch (err) {
+      console.error('Load notices failed:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load notices. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (!formData.title || !formData.content) {
+        toast({
+          title: "Missing fields",
+          description: "Please fill in both title and content.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (editingNotice) {
+        // Update existing notice
+        const { data: updatedNotice } = await api.put<Notice>(`/notices/${editingNotice._id}`, formData);
+        setNotices(prev => prev.map(n => n._id === updatedNotice._id ? updatedNotice : n));
+        toast({
+          title: "Success",
+          description: "Notice updated successfully.",
+        });
+      } else {
+        // Create new notice
+        const { data: newNotice } = await api.post<Notice>('/notices', formData);
+        setNotices(prev => [newNotice, ...prev]);
+        toast({
+          title: "Success",
+          description: "Notice posted successfully.",
+        });
+      }
+      
+      setShowForm(false);
+      setEditingNotice(null);
+      setFormData({ 
+        title: '', 
+        content: '', 
+        priority: 'medium' as const, 
+        audience: 'all' as const 
+      });
+    } catch (err) {
+      console.error(`${editingNotice ? 'Update' : 'Post'} notice failed:`, err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : `Failed to ${editingNotice ? 'update' : 'post'} notice. Please try again.`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEdit = (notice: Notice) => {
+    setEditingNotice(notice);
+    setFormData({
+      title: notice.title,
+      content: notice.content,
+      priority: notice.priority,
+      audience: notice.audience
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (noticeId: string) => {
+    try {
+      await api.delete(`/notices/${noticeId}`);
+      setNotices(prev => prev.filter(n => n._id !== noticeId));
+      toast({
+        title: "Success",
+        description: "Notice deleted successfully.",
+      });
+    } catch (err) {
+      console.error('Delete notice failed:', err);
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete notice. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="space-y-6" data-testid="admin-notices-page">
@@ -36,29 +170,96 @@ export default function AdminNotices() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {notices.map((notice, idx) => (
-          <NoticeCard key={idx} {...notice} />
-        ))}
-      </div>
+      {/* Split notices into 'My Notices' and 'Other Notices' for clarity */}
+      {(() => {
+        const myNotices = notices.filter(n => n.postedBy && n.postedBy._id === currentUserId);
+        const otherNotices = notices.filter(n => !(n.postedBy && n.postedBy._id === currentUserId));
+        return (
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-xl font-semibold">My Notices</h2>
+              {myNotices.length === 0 ? (
+                <div className="text-sm text-muted-foreground mt-2">You haven't posted any notices yet.</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+                  {myNotices.map((notice) => (
+                    <NoticeCard
+                      key={notice._id}
+                      {...notice}
+                      currentUserId={currentUserId}
+                      canEdit={true}
+                      canDelete={true}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+            <section>
+              <h2 className="text-xl font-semibold">Other Notices</h2>
+              {otherNotices.length === 0 ? (
+                <div className="text-sm text-muted-foreground mt-2">No notices from others.</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+                  {otherNotices.map((notice) => (
+                    <NoticeCard
+                      key={notice._id}
+                      {...notice}
+                      currentUserId={currentUserId}
+                      canEdit={false}
+                      canDelete={false}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        );
+      })()}
+
+      <Dialog 
+        open={showForm} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormData({ title: '', content: '', priority: 'medium', audience: 'all' });
+            setEditingNotice(null);
+          }
+          setShowForm(open);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Post New Notice</DialogTitle>
+            <DialogTitle>{editingNotice ? 'Edit Notice' : 'Post New Notice'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Title</Label>
-              <Input placeholder="Notice title" data-testid="input-notice-title" />
+              <Input 
+                placeholder="Notice title" 
+                data-testid="input-notice-title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              />
             </div>
             <div className="space-y-2">
               <Label>Content</Label>
-              <Textarea placeholder="Notice content" data-testid="input-notice-content" />
+              <Textarea 
+                placeholder="Notice content" 
+                data-testid="input-notice-content"
+                value={formData.content}
+                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              />
             </div>
             <div className="space-y-2">
               <Label>Priority</Label>
-              <Select defaultValue="medium">
+              <Select 
+                value={formData.priority}
+                onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => 
+                  setFormData(prev => ({ ...prev, priority: value }))
+                }
+              >
                 <SelectTrigger data-testid="select-priority">
                   <SelectValue />
                 </SelectTrigger>
@@ -72,7 +273,12 @@ export default function AdminNotices() {
             </div>
             <div className="space-y-2">
               <Label>Target Audience</Label>
-              <Select defaultValue="all">
+              <Select 
+                value={formData.audience}
+                onValueChange={(value: 'all' | 'teachers' | 'students') => 
+                  setFormData(prev => ({ ...prev, audience: value }))
+                }
+              >
                 <SelectTrigger data-testid="select-audience">
                   <SelectValue />
                 </SelectTrigger>
@@ -84,8 +290,11 @@ export default function AdminNotices() {
               </Select>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button onClick={() => setShowForm(false)} data-testid="button-submit-notice">Post Notice</Button>
+              <Button variant="outline" onClick={() => {
+                setShowForm(false);
+                setEditingNotice(null);
+              }}>Cancel</Button>
+              <Button onClick={handleSubmit} data-testid="button-submit-notice">{editingNotice ? 'Update' : 'Post'} Notice</Button>
             </div>
           </div>
         </DialogContent>

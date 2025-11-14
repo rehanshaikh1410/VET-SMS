@@ -1,9 +1,10 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DialogClose } from "@/components/ui/dialog";
 
 interface UserFormProps {
   type: 'student' | 'teacher';
@@ -12,13 +13,45 @@ interface UserFormProps {
 }
 
 export default function UserForm({ type, onSubmit, initialData }: UserFormProps) {
+  const [classes, setClasses] = useState<Array<{ _id: string, name: string, grade?: string }>>([]);
   const [formData, setFormData] = useState(initialData || {
+    username: '',
+    password: '',
     name: '',
     email: '',
     phone: '',
     ...(type === 'student' ? { rollNumber: '', classId: '' } : {}),
     ...(type === 'teacher' ? { subjectId: '', experience: '' } : {})
   });
+
+  // Load available classes for student form
+  const [subjects, setSubjects] = useState<Array<{ _id: string, name: string }>>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (type === 'student') {
+          const res = await fetch('/api/classes');
+          if (!res.ok) throw new Error('Failed to load classes');
+          const data = await res.json();
+          setClasses(data);
+        } else if (type === 'teacher') {
+          const res = await fetch('/api/subjects');
+          if (!res.ok) throw new Error('Failed to load subjects');
+          const data = await res.json();
+          setSubjects(data);
+        }
+      } catch (err) {
+        console.error(`Error loading ${type === 'student' ? 'classes' : 'subjects'}:`, err);
+      }
+    };
+    loadData();
+  }, [type]);
+
+  // Update form when initialData changes (for edit case)
+  React.useEffect(() => {
+    if (initialData) setFormData(initialData);
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,11 +72,36 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
+            <Label htmlFor="username">Username *</Label>
+            <Input
+              id="username"
+              value={formData.username}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('username', e.target.value)}
+              required
+              disabled={!!initialData}
+              data-testid="input-username"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('password', e.target.value)}
+              required={!initialData}
+              disabled={!!initialData}
+              data-testid="input-password"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('name', e.target.value)}
               required
               data-testid="input-name"
             />
@@ -55,7 +113,7 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('email', e.target.value)}
               data-testid="input-email"
             />
           </div>
@@ -65,7 +123,7 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('phone', e.target.value)}
               data-testid="input-phone"
             />
           </div>
@@ -73,28 +131,30 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
           {type === 'student' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="rollNumber">Roll Number *</Label>
-                <Input
-                  id="rollNumber"
-                  value={formData.rollNumber}
-                  onChange={(e) => handleChange('rollNumber', e.target.value)}
-                  required
-                  data-testid="input-roll-number"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="classId">Class *</Label>
-                <Select value={formData.classId} onValueChange={(val) => handleChange('classId', val)}>
+                <Select value={formData.classId || ''} onValueChange={(val) => handleChange('classId', val)}>
                   <SelectTrigger data-testid="select-class">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="class-1">Class 1</SelectItem>
-                    <SelectItem value="class-2">Class 2</SelectItem>
-                    <SelectItem value="class-3">Class 3</SelectItem>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          {cls.name}{cls.grade ? ` - ${cls.grade}` : ''}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rollNumber">Roll Number *</Label>
+                <Input
+                  id="rollNumber"
+                  value={formData.rollNumber || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('rollNumber', e.target.value)}
+                  required
+                  data-testid="input-roll-number"
+                />
               </div>
             </>
           )}
@@ -108,9 +168,11 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="math">Mathematics</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="science">Science</SelectItem>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject._id} value={subject._id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -121,7 +183,7 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
                   id="experience"
                   type="number"
                   value={formData.experience}
-                  onChange={(e) => handleChange('experience', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange('experience', e.target.value)}
                   data-testid="input-experience"
                 />
               </div>
@@ -130,9 +192,11 @@ export default function UserForm({ type, onSubmit, initialData }: UserFormProps)
         </div>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" data-testid="button-cancel">
-            Cancel
-          </Button>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" data-testid="button-cancel">
+              Cancel
+            </Button>
+          </DialogClose>
           <Button type="submit" data-testid="button-submit">
             {initialData ? 'Update' : 'Create'} {type === 'student' ? 'Student' : 'Teacher'}
           </Button>

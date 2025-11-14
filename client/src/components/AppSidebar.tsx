@@ -7,31 +7,27 @@ import {
   FileText, 
   Calendar, 
   Bell,
-  Settings,
-  LogOut
+  LogOut,
+  Key
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   role: 'admin' | 'teacher' | 'student';
   userName: string;
+  onLogout?: () => void;
 }
 
-const menuItems = {
+type MenuItem = {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+};
+
+const menuItems: Record<string, MenuItem[]> = {
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Users, label: "Teachers", path: "/admin/teachers" },
@@ -54,78 +50,69 @@ const menuItems = {
     { icon: LayoutDashboard, label: "Dashboard", path: "/student" },
     { icon: Calendar, label: "Timetable", path: "/student/timetable" },
     { icon: ClipboardList, label: "Attendance", path: "/student/attendance" },
+    { icon: ClipboardList, label: "Quizzes", path: "/student/quizzes" },
     { icon: GraduationCap, label: "Grades", path: "/student/grades" },
     { icon: Bell, label: "Notices", path: "/student/notices" },
   ],
 };
 
-export default function AppSidebar({ role, userName }: AppSidebarProps) {
+export default function AppSidebar({ role, userName, onLogout }: AppSidebarProps) {
   const [location, setLocation] = useLocation();
-  const items = menuItems[role];
+  const items = menuItems[role as keyof typeof menuItems] || [];
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getInitials = (name: string = '') => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4 border-b">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="font-bold text-sm">School Portal</h2>
+    <div className="flex flex-col h-full border-r bg-card w-64 min-w-[240px]">
+      <div className="p-3 border-b">
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="text-sm">{getInitials(userName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden">
+            <h2 className="font-semibold text-sm truncate">{userName}</h2>
             <p className="text-xs text-muted-foreground capitalize">{role}</p>
           </div>
         </div>
-      </SidebarHeader>
+      </div>
       
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    onClick={() => setLocation(item.path)}
-                    isActive={location === item.path}
-                    data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      <div className="flex-1 overflow-y-auto">
+        <nav className="p-1.5 space-y-0.5">
+          {items.map((item) => {
+            const isActive = location === item.path
+            return (
+              <Button
+                key={item.path}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start text-sm px-2 py-1.5 h-auto",
+                  isActive && "bg-muted"
+                )}
+                style={isActive ? { color: "hsl(var(--sidebar-accent-foreground))" } : undefined}
+                onClick={() => setLocation(item.path)}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </Button>
+            )
+          })}
+        </nav>
+      </div>
 
-      <SidebarFooter className="p-4 border-t">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{userName}</p>
-              <p className="text-xs text-muted-foreground capitalize">{role}</p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start" 
-            onClick={() => console.log('Logout clicked')}
-            data-testid="button-logout"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+      <div className="p-4 border-t">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={onLogout}
+          data-testid="button-logout"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Student to Class - Timetable Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.loading {
+            display: block;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .status.success {
+            display: block;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            display: block;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info-section {
+            margin: 30px 0;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+        }
+        .info-section h3 {
+            margin-top: 0;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Assign Student to Class - Timetable Fix</h1>
+        
+        <div id="status" class="status"></div>
+
+        <button id="assignBtn" onclick="assignStudentToClass()">
+            ⚡ ONE-CLICK FIX: Assign shekhar to sybca Class
+        </button>
+
+        <div class="info-section">
+            <h3>📋 What This Does:</h3>
+            <ul>
+                <li>✅ Finds the "shekhar" student</li>
+                <li>✅ Finds the "sybca" class</li>
+                <li>✅ Verifies the class has a timetable set by admin</li>
+                <li>✅ Assigns the student to the class</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>🎯 After Clicking Fix:</h3>
+            <ol>
+                <li>Close this window</li>
+                <li>Go back to student dashboard</li>
+                <li>Refresh the page (Ctrl+F5)</li>
+                <li>Go to "My Timetable"</li>
+                <li>✨ You should now see the real timetable!</li>
+            </ol>
+        </div>
+
+        <div id="debugInfo" style="margin-top: 30px; display: none;">
+            <h3>🔍 Debug Information:</h3>
+            <pre id="debugOutput"></pre>
+        </div>
+    </div>
+
+    <script>
+        async function assignStudentToClass() {
+            const btn = document.getElementById('assignBtn');
+            const status = document.getElementById('status');
+            
+            btn.disabled = true;
+            status.className = 'status loading';
+            status.textContent = '⏳ Assigning shekhar to sybca class...';
+
+            try {
+                const response = await fetch('http://localhost:5004/api/assign-student-by-classname', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        studentUsername: 'shekhar',
+                        className: 'sybca'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    status.className = 'status success';
+                    status.innerHTML = `
+                        <strong>✅ SUCCESS!</strong><br><br>
+                        ${data.message}<br><br>
+                        <strong>Student:</strong> ${data.student.name} (${data.student.username})<br>
+                        <strong>Class:</strong> ${data.class.name}<br><br>
+                        Now refresh the student dashboard and go to "My Timetable" to see the real schedule!
+                    `;
+                    
+                    // Show debug info
+                    document.getElementById('debugInfo').style.display = 'block';
+                    document.getElementById('debugOutput').textContent = JSON.stringify(data, null, 2);
+                } else {
+                    status.className = 'status error';
+                    status.innerHTML = `
+                        <strong>❌ ERROR:</strong><br>
+                        ${data.message}
+                    `;
+                }
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = `
+                    <strong>❌ CONNECTION ERROR:</strong><br>
+                    ${error.message}<br><br>
+                    Make sure the server is running on http://localhost:5004
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Show debug on load
+        async function loadDebugInfo() {
+            try {
+                const response = await fetch('http://localhost:5004/api/debug/students-classes');
+                const data = await response.json();
+                
+                console.log('Current Status:', data);
+                console.log('Students:', data.students);
+                console.log('Classes:', data.classes);
+                console.log('Timetables:', data.timetables);
+            } catch (error) {
+                console.error('Failed to load debug info:', error);
+            }
+        }
+
+        loadDebugInfo();
+    </script>
+</body>
+</html>

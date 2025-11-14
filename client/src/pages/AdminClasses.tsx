@@ -1,48 +1,187 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DataTable, { Column } from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import ClassForm from "@/components/ClassForm";
+import SubjectForm from "@/components/SubjectForm";
+
+interface Class {
+  _id: string;
+  name: string;
+  grade?: string;
+  teacherId?: string;
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  code: string;
+  teacherId?: string;
+  teachers?: any[];
+  classes?: any[];
+}
+
+interface Teacher {
+  _id: string;
+  name: string;
+}
 
 export default function AdminClasses() {
   const [showClassForm, setShowClassForm] = useState(false);
   const [showSubjectForm, setShowSubjectForm] = useState(false);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+
+  const loadData = async () => {
+    try {
+      const [cRes, sRes, tRes] = await Promise.all([
+        fetch('/api/classes'),
+        fetch('/api/subjects'),
+        fetch('/api/teachers')
+      ]);
+      if (tRes.ok) setTeachers(await tRes.json());
+      if (cRes.ok) {
+        const rawClasses = await cRes.json();
+        // normalize: set teacherId from classTeacher (populated or id)
+        const normClasses = rawClasses.map((rc: any) => ({
+          ...rc,
+          teacherId: rc.classTeacher?._id || rc.classTeacher || undefined
+        }));
+        setClasses(normClasses);
+      }
+      if (sRes.ok) {
+        const rawSubjects = await sRes.json();
+        const normSubjects = rawSubjects.map((rs: any) => ({
+          ...rs,
+          teacherId: rs.teacher?._id || rs.teacher || undefined,
+          teachers: rs.teachers || (rs.teacher ? [rs.teacher] : []),
+          classes: rs.classes || []
+        }));
+        setSubjects(normSubjects);
+      }
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleClassSubmit = async (data: any) => {
+    try {
+      const url = editingClass ? `/api/classes/${editingClass._id}` : '/api/classes';
+      const method = editingClass ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) throw new Error(`Failed to ${editingClass ? 'update' : 'create'} class`);
+      const saved = await res.json();
+      // If we edited, patch local state to reflect change immediately
+      if (editingClass) {
+        const patched = {
+          ...saved,
+          teacherId: saved.classTeacher?._id || saved.classTeacher || undefined
+        };
+        setClasses((prev) => prev.map((c) => c._id === patched._id ? patched : c));
+        // notify other pages that classes updated
+        try { window.dispatchEvent(new CustomEvent('classesUpdated', { detail: patched })); } catch (e) {}
+      } else {
+        // created: ensure teacherId normalized and append
+        const created = { ...saved, teacherId: saved.classTeacher?._id || saved.classTeacher || undefined };
+        setClasses((prev) => [created, ...prev]);
+        // notify other pages that classes updated
+        try { window.dispatchEvent(new CustomEvent('classesUpdated', { detail: created })); } catch (e) {}
+      }
+      setShowClassForm(false);
+      setEditingClass(null);
+    } catch (err) {
+      console.error(`Error ${editingClass ? 'updating' : 'creating'} class:`, err);
+    }
+  };
+
+  const handleSubjectSubmit = async (data: any) => {
+    try {
+      const url = editingSubject ? `/api/subjects/${editingSubject._id}` : '/api/subjects';
+      const method = editingSubject ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) throw new Error(`Failed to ${editingSubject ? 'update' : 'create'} subject`);
+      const saved = await res.json();
+      const normalized = {
+        ...saved,
+        teacherId: saved.teacher?._id || saved.teacher || undefined,
+        teachers: saved.teachers || (saved.teacher ? [saved.teacher] : []),
+        classes: saved.classes || []
+      };
+      
+      if (editingSubject) {
+        setSubjects((prev) => prev.map((s) => s._id === normalized._id ? normalized : s));
+      } else {
+        setSubjects((prev) => [normalized, ...prev]);
+      }
+      setShowSubjectForm(false);
+      setEditingSubject(null);
+    } catch (err) {
+      console.error(`Error ${editingSubject ? 'updating' : 'creating'} subject:`, err);
+    }
+  };
 
   const classColumns: Column[] = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: 'Class Name' },
-    { key: 'grade', label: 'Grade' },
-    { key: 'students', label: 'Students' },
-    { key: 'classTeacher', label: 'Class Teacher' },
+    { key: 'grade', label: 'Div' },
+    { key: 'teacherName', label: 'Class Teacher' },
   ];
 
-  const classData = [
-    { id: 'C001', name: 'Class 10-A', grade: '10', students: 45, classTeacher: 'Mr. Smith' },
-    { id: 'C002', name: 'Class 10-B', grade: '10', students: 42, classTeacher: 'Ms. Johnson' },
-    { id: 'C003', name: 'Class 9-A', grade: '9', students: 48, classTeacher: 'Dr. Brown' },
-  ];
+  const classData = classes.map((c) => ({
+    id: c._id,
+    name: c.name,
+    grade: c.grade,
+    teacherName: teachers.find(t => t._id === c.teacherId)?.name || '-'
+  }));
 
   const subjectColumns: Column[] = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: 'Subject Name' },
     { key: 'code', label: 'Code' },
-    { key: 'teacher', label: 'Assigned Teacher' },
-    { key: 'classes', label: 'Classes' },
+    { key: 'teacherName', label: 'Assigned Teacher' },
+    { key: 'classes', label: 'Assign to Classes' }
   ];
 
-  const subjectData = [
-    { id: 'SUB001', name: 'Mathematics', code: 'MATH101', teacher: 'Mr. Smith', classes: '10-A, 10-B' },
-    { id: 'SUB002', name: 'English', code: 'ENG101', teacher: 'Ms. Johnson', classes: '10-A, 9-A' },
-    { id: 'SUB003', name: 'Physics', code: 'PHY101', teacher: 'Dr. Brown', classes: '10-A, 10-B' },
-  ];
+  const subjectData = subjects.map((s) => ({
+    id: s._id,
+    name: s.name,
+    code: s.code,
+    teacherName: s.teachers && s.teachers.length > 0 
+      ? s.teachers.map((t: any) => t.name || t).join(', ')
+      : '-'
+  ,
+    classes: (s.classes && s.classes.length > 0)
+      ? (s.classes as any[]).map((cl: any) => {
+        // class may be an id (string) or populated object
+        if (!cl) return '-';
+        if (typeof cl === 'string') {
+          const found = classes.find(c => c._id === cl);
+          return found ? `${found.name}${found.grade ? ` (Div ${found.grade})` : ''}` : cl;
+        }
+        // populated object
+        return cl.name ? `${cl.name}${cl.grade ? ` (Div ${cl.grade})` : ''}` : (cl._id || '-');
+      }).join(', ')
+      : '-'
+  }));
 
   return (
     <div className="space-y-6" data-testid="admin-classes-page">
@@ -55,7 +194,10 @@ export default function AdminClasses() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Classes</h2>
-            <Button onClick={() => setShowClassForm(true)} data-testid="button-add-class">
+            <Button onClick={() => {
+              setEditingClass(null);
+              setShowClassForm(true);
+            }} data-testid="button-add-class">
               <Plus className="h-4 w-4 mr-2" />
               Add Class
             </Button>
@@ -63,15 +205,34 @@ export default function AdminClasses() {
           <DataTable
             columns={classColumns}
             data={classData}
-            onEdit={(row) => console.log('Edit class:', row)}
-            onDelete={(row) => console.log('Delete class:', row)}
+            onEdit={(row) => {
+              const classToEdit = classes.find(c => c._id === row.id);
+              if (classToEdit) {
+                setEditingClass(classToEdit);
+                setShowClassForm(true);
+              }
+            }}
+            onDelete={async (row) => {
+              if (!confirm('Delete class?')) return;
+              try {
+                const res = await fetch(`/api/classes/${row.id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+                await loadData();
+              } catch (err) {
+                console.error(err);
+                alert('Failed to delete class');
+              }
+            }}
           />
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Subjects</h2>
-            <Button onClick={() => setShowSubjectForm(true)} data-testid="button-add-subject">
+            <Button onClick={() => {
+              setEditingSubject(null);
+              setShowSubjectForm(true);
+            }} data-testid="button-add-subject">
               <Plus className="h-4 w-4 mr-2" />
               Add Subject
             </Button>
@@ -79,55 +240,50 @@ export default function AdminClasses() {
           <DataTable
             columns={subjectColumns}
             data={subjectData}
-            onEdit={(row) => console.log('Edit subject:', row)}
-            onDelete={(row) => console.log('Delete subject:', row)}
+            onEdit={(row) => {
+              const subjectToEdit = subjects.find(s => s._id === row.id);
+              if (subjectToEdit) {
+                setEditingSubject(subjectToEdit);
+                setShowSubjectForm(true);
+              }
+            }}
+            onDelete={async (row) => {
+              if (!confirm('Delete subject?')) return;
+              try {
+                const res = await fetch(`/api/subjects/${row.id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+                await loadData();
+              } catch (err) {
+                console.error(err);
+                alert('Failed to delete subject');
+              }
+            }}
           />
         </div>
       </div>
 
-      <Dialog open={showClassForm} onOpenChange={setShowClassForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Class</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Class Name</Label>
-              <Input placeholder="e.g., Class 10-A" data-testid="input-class-name" />
-            </div>
-            <div className="space-y-2">
-              <Label>Grade</Label>
-              <Input placeholder="e.g., 10" data-testid="input-grade" />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowClassForm(false)}>Cancel</Button>
-              <Button onClick={() => setShowClassForm(false)} data-testid="button-submit-class">Create Class</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ClassForm
+        open={showClassForm}
+        onClose={() => {
+          setShowClassForm(false);
+          setEditingClass(null);
+        }}
+        onSubmit={handleClassSubmit}
+        initialData={editingClass}
+        teachers={teachers}
+      />
 
-      <Dialog open={showSubjectForm} onOpenChange={setShowSubjectForm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Subject</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Subject Name</Label>
-              <Input placeholder="e.g., Mathematics" data-testid="input-subject-name" />
-            </div>
-            <div className="space-y-2">
-              <Label>Subject Code</Label>
-              <Input placeholder="e.g., MATH101" data-testid="input-subject-code" />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowSubjectForm(false)}>Cancel</Button>
-              <Button onClick={() => setShowSubjectForm(false)} data-testid="button-submit-subject">Create Subject</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SubjectForm
+        open={showSubjectForm}
+        onClose={() => {
+          setShowSubjectForm(false);
+          setEditingSubject(null);
+        }}
+        onSubmit={handleSubjectSubmit}
+        initialData={editingSubject}
+        teachers={teachers}
+        classes={classes}
+      />
     </div>
   );
 }

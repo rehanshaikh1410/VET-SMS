@@ -1,23 +1,38 @@
 import NoticeCard from "@/components/NoticeCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 export default function StudentNotices() {
   const [filter, setFilter] = useState('all');
+  const queryClient = useQueryClient();
 
-  const notices = [
-    { title: "Assignment Due Tomorrow", content: "Math assignment chapter 5 exercises 1-10 must be submitted by tomorrow.", postedBy: "Mr. Smith", timestamp: "1 hour ago", priority: "urgent" as const },
-    { title: "Quiz Next Monday", content: "Algebra quiz scheduled for next Monday. Prepare topics from chapters 4 and 5.", postedBy: "Mr. Smith", timestamp: "3 hours ago", priority: "high" as const },
-    { title: "Annual Sports Day", content: "Sports day scheduled for December 15th. Register for your events by Friday.", postedBy: "Principal", timestamp: "1 day ago", priority: "high" as const },
-    { title: "Library Hours Extended", content: "School library will now be open till 6 PM on weekdays.", postedBy: "Librarian", timestamp: "2 days ago", priority: "low" as const },
-    { title: "Parent-Teacher Meeting", content: "PTM scheduled for next Saturday from 9 AM to 2 PM.", postedBy: "Admin", timestamp: "3 days ago", priority: "medium" as const },
-    { title: "Science Project Submission", content: "Science project submissions extended till December 20th.", postedBy: "Dr. Brown", timestamp: "4 days ago", priority: "medium" as const },
-  ];
+  const { data: notices = [], isLoading } = useQuery({
+    queryKey: ['studentNotices'],
+    queryFn: async () => {
+      const response = await api.get('/notices');
+      return response.data;
+    }
+  });
+
+  // Subscribe to real-time notice updates
+  useWebSocket(
+    (newNotice) => {
+      // Invalidate and refetch notices when a new one is created
+      queryClient.invalidateQueries({ queryKey: ['studentNotices'] });
+    }
+  );
 
   const filteredNotices = filter === 'all' 
     ? notices 
-    : notices.filter(n => n.priority === filter);
+    : notices.filter((n: any) => n.priority === filter);
+
+  if (isLoading) {
+    return <div className="space-y-6">Loading notices...</div>;
+  }
 
   return (
     <div className="space-y-6" data-testid="student-notices-page">
@@ -45,8 +60,17 @@ export default function StudentNotices() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filteredNotices.map((notice, idx) => (
-          <NoticeCard key={idx} {...notice} />
+        {filteredNotices.map((notice: any) => (
+          <NoticeCard 
+            key={notice._id}
+            _id={notice._id}
+            title={notice.title}
+            content={notice.content}
+            postedBy={notice.postedBy || { _id: '', name: 'Admin' }}
+            createdAt={notice.createdAt}
+            priority={notice.priority}
+            audience={notice.audience}
+          />
         ))}
       </div>
     </div>

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Edit, Trash2, Eye } from "lucide-react";
+import { Search, Edit, Trash2, Eye, Key } from "lucide-react";
 
 export interface Column {
   key: string;
@@ -16,8 +16,12 @@ interface DataTableProps {
   onEdit?: (row: any) => void;
   onDelete?: (row: any) => void;
   onView?: (row: any) => void;
+  onReveal?: (row: any) => void;
   searchable?: boolean;
   itemsPerPage?: number;
+  columnRenderers?: { [key: string]: (value: any) => React.ReactNode };
+  // when this key changes, DataTable will reset its internal search input
+  resetSearchKey?: any;
 }
 
 export default function DataTable({ 
@@ -26,11 +30,19 @@ export default function DataTable({
   onEdit, 
   onDelete, 
   onView,
+  onReveal,
   searchable = true,
-  itemsPerPage = 10 
+  itemsPerPage = 10,
+  columnRenderers = {}
+  , resetSearchKey
 }: DataTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // clear search when parent provides a new resetSearchKey
+  useEffect(() => {
+    if (typeof resetSearchKey !== 'undefined') setSearchTerm('');
+  }, [resetSearchKey]);
 
   const filteredData = searchTerm
     ? data.filter(row => 
@@ -73,7 +85,7 @@ export default function DataTable({
                   {col.label}
                 </th>
               ))}
-              {(onEdit || onDelete || onView) && (
+              {(onEdit || onDelete || onView || onReveal) && (
                 <th className="text-right p-3 font-semibold text-sm">Actions</th>
               )}
             </tr>
@@ -83,12 +95,22 @@ export default function DataTable({
               <tr key={idx} className="border-b hover-elevate" data-testid={`table-row-${idx}`}>
                 {columns.map((col) => (
                   <td key={col.key} className="p-3 text-sm">
-                    {row[col.key]}
+                    {columnRenderers[col.key] ? columnRenderers[col.key](row[col.key]) : row[col.key]}
                   </td>
                 ))}
-                {(onEdit || onDelete || onView) && (
+                {(onEdit || onDelete || onView || onReveal) && (
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-2">
+                      {onReveal && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onReveal(row)}
+                          data-testid={`button-reveal-${idx}`}
+                        >
+                          <Key className="h-4 w-4" />
+                        </Button>
+                      )}
                       {onView && (
                         <Button
                           size="icon"
