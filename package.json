@@ -10,6 +10,7 @@
     "build": "npm install --include=dev && vite build",
     "preview": "vite preview",
     "start": "NODE_ENV=production node dist/index.js",
+    "start:prod": "npx tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
@@ -87,6 +88,7 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
+    "tsx": "^4.20.6",
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.4.2",
@@ -110,7 +112,7 @@
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.20.6",
+    
     "typescript": "^5.6.3",
     "vite": "^5.4.20"
   },
