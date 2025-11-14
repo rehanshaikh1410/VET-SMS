@@ -3,7 +3,8 @@ services:
     name: school-system-backend
     runtime: node
     plan: free
-    buildCommand: npm install
+    # Install devDependencies so Vite (devDependency) is available during the build
+    buildCommand: npm install --include=dev
     # Use tsx to run the TypeScript server directly on Render
     # Alternatively compile server to JS & use `node dist/index.js`
     startCommand: npx tsx server/index.ts
@@ -15,5 +16,7 @@ services:
         # You'll set this in Render dashboard
       - key: PORT
         value: 5004
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
     autoDeploy: true
     branch: main
