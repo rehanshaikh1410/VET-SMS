@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "server",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowJs": false,
