@@ -11,7 +11,7 @@ import Subject from "./models/subjectModel.js";
 import Timetable from "./models/timetableModel.js";
 import Notice from "./models/noticeModel.js";
 import QuizResult from "./models/quizResult.js";
-import { authenticate, authorize } from "./middlewares/auth";
+import { authenticate, authorize } from "./middlewares/auth.js";
 
 // Extend Express Request type to include user
 declare global {
