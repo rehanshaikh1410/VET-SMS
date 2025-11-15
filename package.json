@@ -9,7 +9,7 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build": "npm install --include=dev && tsc -p tsconfig.server.json && vite build",
     "preview": "vite preview",
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "NODE_ENV=production node dist/server/index.js",
     "start:prod": "npx tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push"
